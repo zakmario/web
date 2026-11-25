@@ -1,0 +1,50 @@
+body {
+    background-color: #f5f7fb;
+}
+
+.hero {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 60%, #084298 100%);
+    color: #fff;
+}
+
+.hero .lead {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: #e7f1ff;
+    color: #0d6efd;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.avatar-lg {
+    width: 88px;
+    height: 88px;
+    font-size: 1.75rem;
+}
+
+.doctor-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.doctor-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.5rem 1.25rem rgba(13, 110, 253, 0.12) !important;
+}
+
+.search-panel {
+    margin-top: -2.25rem;
+}
+
+.table td,
+.table th {
+    vertical-align: middle;
+}

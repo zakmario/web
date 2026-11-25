@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}{{ doctor }}{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Nos médecins</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ doctor }}</li>
+        </ol>
+    </nav>
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap align-items-center gap-4">
+                <span class="avatar avatar-lg">{{ doctor.first_name|first|upper }}{{ doctor.last_name|first|upper }}</span>
+                <div class="flex-grow-1">
+                    <h1 class="h3 mb-1">{{ doctor }}</h1>
+                    <div>
+                        {% for specialty in doctor.specialties.all %}
+                            <span class="badge rounded-pill text-bg-primary me-1">{{ specialty.name }}</span>
+                        {% empty %}
+                            <span class="text-muted">Médecine générale</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% if user_role != 'doctor' %}
+                    <a href="{% url 'appointment_create' %}?doctor={{ doctor.pk }}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-calendar-plus"></i> Prendre rendez-vous
+                    </a>
+                {% endif %}
+            </div>
+            <hr class="my-4">
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Numéro d'inscription à l'ordre</dt>
+                <dd class="col-sm-8">{{ doctor.license_number }}</dd>
+                <dt class="col-sm-4">Téléphone</dt>
+                <dd class="col-sm-8">{{ doctor.phone }}</dd>
+                <dt class="col-sm-4">Email</dt>
+                <dd class="col-sm-8">{% if doctor.email %}<a href="mailto:{{ doctor.email }}">{{ doctor.email }}</a>{% else %}<span class="text-muted">Non renseigné</span>{% endif %}</dd>
+            </dl>
+        </div>
+    </div>
+</div>
+{% endblock %}

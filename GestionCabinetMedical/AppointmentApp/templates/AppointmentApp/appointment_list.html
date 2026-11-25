@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Rendez-vous{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h4 mb-0">
+            {% if is_doctor %}Mes consultations{% elif is_patient %}Mes rendez-vous{% else %}Tous les rendez-vous{% endif %}
+        </h1>
+        {% if is_patient %}
+            <a href="{% url 'appointment_create' %}" class="btn btn-primary"><i class="bi bi-calendar-plus"></i> Nouveau rendez-vous</a>
+        {% endif %}
+    </div>
+
+    <ul class="nav nav-pills mb-3">
+        <li class="nav-item"><a class="nav-link {% if not selected_status %}active{% endif %}" href="?">Tous</a></li>
+        {% for value, label in statuses %}
+            <li class="nav-item"><a class="nav-link {% if selected_status == value %}active{% endif %}" href="?status={{ value }}">{{ label }}</a></li>
+        {% endfor %}
+    </ul>
+
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        {% if not is_doctor %}<th>Médecin</th>{% endif %}
+                        {% if not is_patient %}<th>Patient</th>{% endif %}
+                        <th>Motif</th>
+                        <th>Durée</th>
+                        <th>Statut</th>
+                        <th>Ordonnance</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for appointment in appointments %}
+                    <tr>
+                        <td class="text-nowrap">{{ appointment.appointment_date|date:"d/m/Y H:i" }}</td>
+                        {% if not is_doctor %}<td>{{ appointment.doctor }}</td>{% endif %}
+                        {% if not is_patient %}<td>{{ appointment.patient }}<br><small class="text-muted">CIN {{ appointment.patient.national_id }}</small></td>{% endif %}
+                        <td>{{ appointment.reason|truncatechars:60 }}</td>
+                        <td class="text-nowrap">{{ appointment.duration_minutes }} min</td>
+                        <td>
+                            {% if appointment.status == 'PENDING' %}
+                                <span class="badge text-bg-warning">{{ appointment.get_status_display }}</span>
+                            {% elif appointment.status == 'CONFIRMED' %}
+                                <span class="badge text-bg-success">{{ appointment.get_status_display }}</span>
+                            {% else %}
+                                <span class="badge text-bg-secondary">{{ appointment.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if appointment.prescription %}
+                                <a href="{{ appointment.prescription.url }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="text-end text-nowrap">
+                            {% if is_doctor and appointment.status == 'PENDING' %}
+                                <form method="post" action="{% url 'appointment_confirm' appointment.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-success" title="Confirmer"><i class="bi bi-check-lg"></i></button>
+                                </form>
+                            {% endif %}
+                            {% if is_doctor and appointment.status != 'CANCELLED' %}
+                                <a href="{% url 'appointment_prescription' appointment.pk %}" class="btn btn-sm btn-outline-primary" title="Ordonnance"><i class="bi bi-upload"></i></a>
+                            {% endif %}
+                            {% if is_doctor or is_patient %}{% if appointment.can_be_cancelled %}
+                                <form method="post" action="{% url 'appointment_cancel' appointment.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger" title="Annuler"><i class="bi bi-x-lg"></i></button>
+                                </form>
+                            {% endif %}{% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">Aucun rendez-vous.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

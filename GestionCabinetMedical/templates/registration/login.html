@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Connexion{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h1 class="h4 mb-4 text-center"><i class="bi bi-box-arrow-in-right text-primary"></i> Connexion</h1>
+                    {% if form.errors %}
+                        <div class="alert alert-danger">Nom d'utilisateur ou mot de passe incorrect.</div>
+                    {% endif %}
+                    {% if next and user.is_authenticated %}
+                        <div class="alert alert-warning">Votre compte n'a pas accès à cette page.</div>
+                    {% elif next %}
+                        <div class="alert alert-info">Veuillez vous connecter pour accéder à cette page.</div>
+                    {% endif %}
+                    <form method="post" action="{% url 'login' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label" for="id_username">Nom d'utilisateur</label>
+                            <input class="form-control" type="text" name="username" id="id_username"
+                                   value="{{ form.username.value|default:'' }}" autofocus required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="id_password">Mot de passe</label>
+                            <input class="form-control" type="password" name="password" id="id_password" required>
+                        </div>
+                        <input type="hidden" name="next" value="{{ next }}">
+                        <button type="submit" class="btn btn-primary w-100">Se connecter</button>
+                    </form>
+                    <p class="text-center small mt-3 mb-0">
+                        Pas encore de compte ? <a href="{% url 'register' %}">Créer un compte patient</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
