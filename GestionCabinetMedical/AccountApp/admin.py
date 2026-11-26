@@ -1,15 +1,23 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.db.models import Sum
+from django.utils import timezone
+
+from AppointmentApp.admin import AppointmentInline
+from AppointmentApp.models import Appointment
 
 from .models import Doctor, Patient, Specialty, User
-
-# Doctor et Patient héritent de User : on réutilise UserAdmin pour que le mot de
-# passe soit haché à la création et modifiable via le formulaire dédié.
 
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    pass
+    # UserAdmin : le mot de passe est toujours haché.
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        ("Informations personnelles", {
+            'classes': ('wide',),
+            'fields': ('first_name', 'last_name', 'email'),
+        }),
+    )
 
 
 @admin.register(Specialty)
@@ -19,61 +27,57 @@ class SpecialtyAdmin(admin.ModelAdmin):
     ordering = ('name',)
 
 
+class AccountModelAdmin(admin.ModelAdmin):
+    """Base commune à Doctor et Patient.
+
+    Le mot de passe n'est pas saisi ici (il serait enregistré en clair) : le compte
+    est créé avec un mot de passe inutilisable, à définir ensuite depuis la fiche
+    du compte dans « Utilisateurs » ou via `python manage.py changepassword`.
+    """
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.set_unusable_password()
+        super().save_model(request, obj, form, change)
+
+
 @admin.register(Doctor)
-class DoctorAdmin(UserAdmin):
-    list_display = ('username', 'first_name', 'last_name', 'license_number', 'phone')
-    list_filter = ('specialties', 'is_active')
-    search_fields = ('username', 'first_name', 'last_name', 'license_number')
-    ordering = ('last_name', 'first_name')
-    filter_horizontal = ('specialties',)
+class DoctorAdmin(AccountModelAdmin):
+    list_display = ('last_name', 'first_name', 'license_number', 'phone', 'confirmed_minutes_today')
+    list_filter = ('specialties',)
+    search_fields = ('license_number', 'last_name', 'first_name')
+    ordering = ('last_name',)
     fieldsets = (
-        (None, {'fields': ('username', 'password')}),
-        ("Informations personnelles", {'fields': ('first_name', 'last_name', 'email', 'phone')}),
-        ("Informations professionnelles", {'fields': ('license_number', 'specialties')}),
-        ("Statut", {'fields': ('is_active', 'last_login', 'date_joined')}),
+        ("Compte", {'fields': ('username', 'first_name', 'last_name', 'email', 'is_active')}),
+        ("Médecin", {'fields': ('license_number', 'phone', 'specialties')}),
     )
-    add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('username', 'usable_password', 'password1', 'password2'),
-        }),
-        ("Informations personnelles", {'fields': ('first_name', 'last_name', 'email', 'phone')}),
-        ("Informations professionnelles", {'fields': ('license_number', 'specialties')}),
-    )
+    # Pour aller plus loin
+    filter_horizontal = ('specialties',)
+    list_per_page = 20
 
     def get_readonly_fields(self, request, obj=None):
-        readonly_fields = super().get_readonly_fields(request, obj)
-        if obj:  # identifiant métier non modifiable après la création
-            return (*readonly_fields, 'license_number')
-        return readonly_fields
+        return ('license_number',) if obj else ()
+
+    @admin.display(description="RDV confirmés aujourd'hui (min)")
+    def confirmed_minutes_today(self, obj):
+        total = obj.appointments.filter(
+            status=Appointment.Status.CONFIRMED,
+            appointment_date__date=timezone.localdate(),
+        ).aggregate(total=Sum('duration_minutes'))['total']
+        return total or 0
 
 
 @admin.register(Patient)
-class PatientAdmin(UserAdmin):
-    list_display = ('username', 'first_name', 'last_name', 'national_id', 'phone', 'birth_date')
-    list_filter = ('is_active',)
-    search_fields = ('username', 'first_name', 'last_name', 'national_id')
-    ordering = ('last_name', 'first_name')
-    filter_horizontal = ()
+class PatientAdmin(AccountModelAdmin):
+    list_display = ('last_name', 'first_name', 'national_id', 'phone', 'birth_date')
+    search_fields = ('last_name', 'first_name', 'national_id')
+    ordering = ('last_name',)
     fieldsets = (
-        (None, {'fields': ('username', 'password')}),
-        ("Informations personnelles", {
-            'fields': ('first_name', 'last_name', 'email', 'phone', 'national_id', 'birth_date'),
-        }),
-        ("Statut", {'fields': ('is_active', 'last_login', 'date_joined')}),
+        ("Compte", {'fields': ('username', 'first_name', 'last_name', 'email', 'is_active')}),
+        ("Patient", {'fields': ('national_id', 'phone', 'birth_date')}),
     )
-    add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('username', 'usable_password', 'password1', 'password2'),
-        }),
-        ("Informations personnelles", {
-            'fields': ('first_name', 'last_name', 'email', 'phone', 'national_id', 'birth_date'),
-        }),
-    )
+    inlines = [AppointmentInline]
+    list_per_page = 20
 
     def get_readonly_fields(self, request, obj=None):
-        readonly_fields = super().get_readonly_fields(request, obj)
-        if obj:  # identifiant métier non modifiable après la création
-            return (*readonly_fields, 'national_id')
-        return readonly_fields
+        return ('national_id',) if obj else ()
